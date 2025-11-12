@@ -192,6 +192,81 @@ Server-Sent Events endpoint for live updates.
 }
 \`\`\`
 
+## Duplicate Ticket Prevention
+
+1.The app tracks locally created tickets using temp IDs and offline IDs.
+
+2.When a new ticket comes from SSE or sync, it is only added if it doesn’t already exist in state.
+
+3.Any temp tickets that match a server-confirmed ticket are removed automatically.
+
+## Sync Strategy Update
+
+1.Tickets created offline → stored with offline-{timestamp} IDs
+
+2.Tickets created online → stored temporarily with temp-{timestamp} IDs
+
+3.When back online → offline tickets are submitted to server
+
+4.Server generates real UUIDs and timestamps
+
+5.Client replaces offline/temp tickets with server versions
+
+6.Duplicates avoided by checking IDs in the client state
+
+## Ticket Creation & Duplicate Handling
+
+                        ┌───────────────┐
+                        │  User submits │
+                        │   Ticket      │
+                        └───────┬───────┘
+                                │
+                        ┌───────▼────────┐
+                        │ Is Online?     │
+                        └───────┬────────┘
+                  Yes           │           No
+                  │             │
+       ┌──────────▼────────┐    │
+       │ Assign temp ID     │    │
+       │ temp-{timestamp}   │    │
+       └──────────┬────────┘    │
+                  │             │
+      Send to server            ┌▼─────────────────┐
+      ┌──────────▼────────┐     │ Assign offline ID │
+      │ Server generates  │     │ offline-{timestamp}│
+      │ real UUID & ts    │     └───────┬──────────┘
+      └──────────┬────────┘             │
+                 │                      │
+         Replace temp ID                │
+         with server ID                 │
+                 │                      │
+                 └───────────────► Add to UI
+                                   immediately
+                                           │
+                                   Add to IndexedDB
+                                   & sync queue
+                                           │
+                                ┌──────────▼───────────┐
+                                │ Back Online?         │
+                                └──────────┬───────────┘
+                                           │
+                                Sync offline tickets
+                                ┌──────────▼───────────┐
+                                │ Replace offline IDs   │
+                                │ with server-confirmed │
+                                │ tickets               │
+                                └──────────┬───────────┘
+                                           │
+                                  UI is now
+                                consistent & duplicate-free
+                                           │
+                                ┌──────────▼───────────┐
+                                │ SSE updates arrive    │
+                                │ Check ID before adding│
+                                │ to prevent duplicates │
+                                └──────────────────────┘
+
+
 ## Offline → Online Sync Strategy
 
 **Policy: Last Write Wins**

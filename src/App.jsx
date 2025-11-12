@@ -3,7 +3,15 @@
 import { useState, useEffect, useRef } from "react"
 import TicketForm from "./components/TicketForm"
 import TicketList from "./components/TicketList"
-import { initDB, getAllTickets, addTicket, getSyncQueue, addToSyncQueue, removeFromSyncQueue } from "./db/indexedDB"
+import {
+  initDB,
+  getAllTickets,
+  addTicket,
+  getSyncQueue,
+  addToSyncQueue,
+  removeFromSyncQueue,
+  deleteTicket,
+} from "./db/indexedDB"
 import "./App.css"
 
 function App() {
@@ -69,9 +77,9 @@ function App() {
             }
 
             // Ignore tickets that have a temp ID equivalent
-            if (tickets.some(t => t.title === data.ticket.title && t.id.startsWith("temp-"))) {
+            if (tickets.some((t) => t.title === data.ticket.title && t.id.startsWith("temp-"))) {
               // remove temp ticket
-              setTickets(prev => prev.filter(t => !t.id.startsWith("temp-")))
+              setTickets((prev) => prev.filter((t) => !t.id.startsWith("temp-")))
             }
 
             await addTicket(data.ticket)
@@ -153,10 +161,13 @@ function App() {
 
           if (response.ok) {
             const createdTicket = await response.json()
-            // Replace offline ticket with real one
+            // Add the real ticket
             await addTicket(createdTicket)
+
+            await deleteTicket(ticket.id)
             await removeFromSyncQueue(ticket.id)
-            // Update state to show real ID
+
+            // Update state to show real ticket instead of offline one
             setTickets((prev) => prev.map((t) => (t.id === ticket.id ? createdTicket : t)))
           }
         } catch (error) {

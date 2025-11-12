@@ -56,6 +56,17 @@ export const addTicket = (ticket) => {
   })
 }
 
+export const deleteTicket = (ticketId) => {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], "readwrite")
+    const store = transaction.objectStore(STORE_NAME)
+    const request = store.delete(ticketId)
+
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => resolve()
+  })
+}
+
 export const getSyncQueue = () => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([SYNC_STORE], "readonly")
@@ -101,4 +112,8 @@ export const removeFromSyncQueue = (ticketId) => {
     request.onerror = () => reject(request.error)
     request.onsuccess = () => resolve()
   })
+}
+
+export const getDB = () => {
+  return db
 }
